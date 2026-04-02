@@ -5,3 +5,6 @@ description = "Prompt Optimization Engine for LLMs"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+
+[project.scripts]
+prompt-optimizer = "prompt_optimizer.main:main"

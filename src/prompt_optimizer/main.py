@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from cli import parse_args
+from .cli import parse_args
 
 
 def estimate_tokens(text: str) -> int:
