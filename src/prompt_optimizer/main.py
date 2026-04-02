@@ -2,7 +2,24 @@
 
 from __future__ import annotations
 
-from .cli import parse_args
+
+def _load_parse_args():
+    """Load parse_args for package and direct-script execution modes."""
+    if __package__:
+        from .cli import parse_args
+
+        return parse_args
+
+    from pathlib import Path
+    import sys
+
+    package_root = Path(__file__).resolve().parents[1]
+    if str(package_root) not in sys.path:
+        sys.path.insert(0, str(package_root))
+
+    from prompt_optimizer.cli import parse_args
+
+    return parse_args
 
 
 def estimate_tokens(text: str) -> int:
@@ -20,6 +37,7 @@ def run(raw_prompt: str) -> None:
 
 def main() -> None:
     """Parse CLI arguments and execute the application."""
+    parse_args = _load_parse_args()
     args = parse_args()
     run(args.prompt)
 
