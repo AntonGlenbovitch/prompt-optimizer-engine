@@ -1,0 +1,7 @@
+[project]
+name = "prompt-optimizer-engine"
+version = "0.1.0"
+description = "Prompt Optimization Engine for LLMs"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
