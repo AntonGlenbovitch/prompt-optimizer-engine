@@ -94,11 +94,63 @@ def optimize_prompt(raw_prompt: str) -> str:
     return structure_prompt(deduplicated)
 
 
+def _extract_prompt_parts(raw_prompt: str) -> tuple[str, str, str]:
+    """Extract normalized role, task, and constraints from the raw prompt."""
+    no_filler = remove_filler_words(raw_prompt)
+    deduplicated = remove_duplicate_phrases(no_filler)
+    role, without_role = _extract_role(deduplicated)
+    clauses = _to_clauses(without_role)
+
+    task = clauses[0] if clauses else "Not specified"
+    constraints = "; ".join(clauses[1:]) if len(clauses) > 1 else "None"
+    return role, task, constraints
+
+
+def generate_variants(raw_prompt: str) -> dict[str, str]:
+    """Generate three intent-preserving prompt variants with different styles."""
+    role, task, constraints = _extract_prompt_parts(raw_prompt)
+    role_line = f"As {role}, " if role != "Not specified" else ""
+    constraint_text = f" Constraints: {constraints}." if constraints != "None" else ""
+
+    variant_a = f"{role_line}{task}.{constraint_text}".strip()
+
+    variant_b_lines = [
+        f"Role: {role}",
+        f"Task: {task}",
+        f"Constraints: {constraints}",
+    ]
+    variant_b = "\n".join(variant_b_lines)
+
+    variant_c_lines = [
+        "Objective:",
+        f"- {task}",
+        "",
+        "Context:",
+        f"- Role: {role}",
+        "",
+        "Requirements:",
+        f"- Follow these constraints: {constraints}",
+        "- Keep the response clear, complete, and aligned with the objective.",
+        "- If information is missing, state assumptions before proceeding.",
+    ]
+    variant_c = "\n".join(variant_c_lines)
+
+    return {
+        "A": variant_a,
+        "B": variant_b,
+        "C": variant_c,
+    }
+
+
 def run(raw_prompt: str) -> None:
     """Run optimization and print result."""
-    optimized = optimize_prompt(raw_prompt)
-    print("Optimized Prompt:")
-    print(optimized)
+    variants = generate_variants(raw_prompt)
+    print("--- Variant A ---")
+    print(variants["A"])
+    print("--- Variant B ---")
+    print(variants["B"])
+    print("--- Variant C ---")
+    print(variants["C"])
 
 
 def main() -> None:
