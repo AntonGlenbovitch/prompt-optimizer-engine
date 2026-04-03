@@ -293,10 +293,37 @@ def _render_comparison_view(raw_prompt: str, variants: dict[str, str]) -> str:
     return "\n".join(sections)
 
 
+def _prompt_for_variant_selection() -> str:
+    """Prompt user to select a prompt variant and return the variant key."""
+    selection_to_variant = {
+        "1": "A",
+        "2": "B",
+        "3": "C",
+    }
+    prompt_lines = [
+        "Select a variant:",
+        "1 -> Variant A",
+        "2 -> Variant B",
+        "3 -> Variant C",
+    ]
+    print("\n".join(prompt_lines))
+
+    while True:
+        choice = input("Enter choice (1/2/3): ").strip()
+        selected = selection_to_variant.get(choice)
+        if selected:
+            return selected
+        print("Invalid selection. Please enter 1, 2, or 3.")
+
+
 def run(raw_prompt: str) -> None:
     """Run optimization and print result."""
     variants = generate_variants(raw_prompt)
     print(_render_comparison_view(raw_prompt, variants))
+    selected_variant = _prompt_for_variant_selection()
+    print("\nFinal Prompt:")
+    print(f"(Variant {selected_variant})")
+    print(variants[selected_variant])
 
 
 def main() -> None:
