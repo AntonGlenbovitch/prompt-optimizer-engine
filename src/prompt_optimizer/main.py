@@ -174,16 +174,34 @@ def score_variant_quality(variant: str, role: str, task: str, constraints: str) 
 
 
 def build_comparison_rows(raw_prompt: str, variants: dict[str, str]) -> list[dict[str, str | int]]:
-    """Build comparison metrics for each variant."""
+    """Build comparison metrics for original prompt and each variant."""
     role, task, constraints = _extract_prompt_parts(raw_prompt)
+    original_tokens = estimate_tokens(raw_prompt)
+    original_length = len(raw_prompt)
+
     rows: list[dict[str, str | int]] = []
+    rows.append(
+        {
+            "label": "Original",
+            "tokens": original_tokens,
+            "quality": score_variant_quality(raw_prompt, role, task, constraints),
+            "length": original_length,
+            "length_diff": 0,
+            "token_savings": 0,
+        }
+    )
+
     for name, text in variants.items():
+        token_count = estimate_tokens(text)
+        text_length = len(text)
         rows.append(
             {
-                "variant": name,
-                "tokens": estimate_tokens(text),
+                "label": f"Variant {name}",
+                "tokens": token_count,
                 "quality": score_variant_quality(text, role, task, constraints),
-                "length": len(text),
+                "length": text_length,
+                "length_diff": text_length - original_length,
+                "token_savings": original_tokens - token_count,
             }
         )
     return rows
@@ -191,16 +209,25 @@ def build_comparison_rows(raw_prompt: str, variants: dict[str, str]) -> list[dic
 
 def _render_table(rows: list[dict[str, str | int]]) -> str:
     """Render a simple fixed-width comparison table."""
-    headers = ("Variant", "Token Estimate", "Quality Score", "Length (chars)")
+    headers = (
+        "Prompt",
+        "Token Estimate",
+        "Quality Score",
+        "Length (chars)",
+        "Length Diff",
+        "Token Savings",
+    )
     widths = [len(header) for header in headers]
 
     str_rows = []
     for row in rows:
         display_row = (
-            str(row["variant"]),
+            str(row["label"]),
             str(row["tokens"]),
             f'{row["quality"]}/100',
             str(row["length"]),
+            str(row["length_diff"]),
+            str(row["token_savings"]),
         )
         str_rows.append(display_row)
         widths = [max(width, len(value)) for width, value in zip(widths, display_row)]
@@ -217,6 +244,8 @@ def _render_table(rows: list[dict[str, str | int]]) -> str:
 def run(raw_prompt: str) -> None:
     """Run optimization and print result."""
     variants = generate_variants(raw_prompt)
+    print("--- Original Prompt ---")
+    print(raw_prompt)
     print("--- Variant A ---")
     print(variants["A"])
     print("--- Variant B ---")
