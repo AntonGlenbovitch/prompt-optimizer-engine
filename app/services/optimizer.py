@@ -25,10 +25,29 @@ _KNOWN_VERBS = {
 
 
 def _remove_fillers(text: str) -> str:
-    cleaned = text
-    for filler in _FILLER_PHRASES:
-        cleaned = cleaned.replace(filler, " ")
-    return " ".join(cleaned.split())
+    words = text.split()
+    filler_patterns = [filler.split() for filler in _FILLER_PHRASES]
+
+    cleaned_words: list[str] = []
+    i = 0
+    while i < len(words):
+        matched_pattern_length = 0
+        for pattern in filler_patterns:
+            pattern_length = len(pattern)
+            segment = words[i : i + pattern_length]
+            segment_lower = [word.lower() for word in segment]
+            if segment_lower == pattern:
+                matched_pattern_length = pattern_length
+                break
+
+        if matched_pattern_length:
+            i += matched_pattern_length
+            continue
+
+        cleaned_words.append(words[i])
+        i += 1
+
+    return " ".join(cleaned_words)
 
 
 def _remove_duplicate_words(text: str) -> str:
@@ -36,28 +55,30 @@ def _remove_duplicate_words(text: str) -> str:
     unique_words: list[str] = []
 
     for word in text.split():
-        if word not in seen:
+        word_lower = word.lower()
+        if word_lower not in seen:
             unique_words.append(word)
-            seen.add(word)
+            seen.add(word_lower)
 
     return " ".join(unique_words)
 
 
 def _detect_task(text: str) -> str:
+    text_lower = text.lower()
     for keyword, task in _TASK_KEYWORDS.items():
-        if keyword in text:
+        if keyword in text_lower:
             return task
     return "Describe"
 
 
 def _extract_subject(text: str) -> str:
-    subject_words = [word for word in text.split() if word not in _KNOWN_VERBS]
+    subject_words = [word for word in text.split() if word.lower() not in _KNOWN_VERBS]
     return " ".join(subject_words)
 
 
 def optimize_prompt(text: str) -> str:
     """Normalize and restructure user text into an optimized prompt template."""
-    normalized = text.strip().lower()
+    normalized = text.strip()
     without_fillers = _remove_fillers(normalized)
     deduplicated = _remove_duplicate_words(without_fillers)
 
