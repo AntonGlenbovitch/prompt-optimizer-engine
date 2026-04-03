@@ -21,3 +21,9 @@ class PromptVariant(BaseModel):
 class PromptResponse(BaseModel):
     original_prompt: str
     variants: List[PromptVariant]
+
+
+class AnalyzeResponse(BaseModel):
+    prompt: str
+    score: int
+    issues: List[str]
