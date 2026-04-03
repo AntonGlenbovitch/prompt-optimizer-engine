@@ -30,3 +30,19 @@ def test_optimize_basic_returns_original_and_optimized() -> None:
 
     assert payload["original"] == prompt
     assert payload["optimized"].startswith("Role:\nYou are an expert assistant.")
+
+
+def test_variants_returns_original_and_generated_variants() -> None:
+    prompt = "Summarize this article"
+    response = client.post("/variants", json={"prompt": prompt})
+
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["original"] == prompt
+    assert len(payload["variants"]) == 3
+    assert [variant["type"] for variant in payload["variants"]] == [
+        "minimal",
+        "balanced",
+        "detailed",
+    ]
