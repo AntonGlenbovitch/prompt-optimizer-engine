@@ -142,6 +142,78 @@ def generate_variants(raw_prompt: str) -> dict[str, str]:
     }
 
 
+def estimate_tokens(text: str) -> int:
+    """Estimate token count using a lightweight character-based heuristic."""
+    return max(1, round(len(text) / 4))
+
+
+def score_variant_quality(variant: str, role: str, task: str, constraints: str) -> int:
+    """Score prompt quality from 0-100 using simple structure/completeness signals."""
+    score = 40
+
+    lower_variant = variant.lower()
+    if role != "Not specified" and "role" in lower_variant:
+        score += 15
+    if task != "Not specified" and task.lower() in lower_variant:
+        score += 20
+    if constraints != "None" and constraints.lower() in lower_variant:
+        score += 15
+
+    # Reward clear structure markers.
+    marker_count = sum(marker in variant for marker in ("Role:", "Task:", "Constraints:", "Objective:", "Requirements:"))
+    score += min(marker_count * 3, 10)
+
+    # Soft penalty for overly short or verbose prompts.
+    length = len(variant)
+    if length < 40:
+        score -= 10
+    elif length > 500:
+        score -= 5
+
+    return max(0, min(100, score))
+
+
+def build_comparison_rows(raw_prompt: str, variants: dict[str, str]) -> list[dict[str, str | int]]:
+    """Build comparison metrics for each variant."""
+    role, task, constraints = _extract_prompt_parts(raw_prompt)
+    rows: list[dict[str, str | int]] = []
+    for name, text in variants.items():
+        rows.append(
+            {
+                "variant": name,
+                "tokens": estimate_tokens(text),
+                "quality": score_variant_quality(text, role, task, constraints),
+                "length": len(text),
+            }
+        )
+    return rows
+
+
+def _render_table(rows: list[dict[str, str | int]]) -> str:
+    """Render a simple fixed-width comparison table."""
+    headers = ("Variant", "Token Estimate", "Quality Score", "Length (chars)")
+    widths = [len(header) for header in headers]
+
+    str_rows = []
+    for row in rows:
+        display_row = (
+            str(row["variant"]),
+            str(row["tokens"]),
+            f'{row["quality"]}/100',
+            str(row["length"]),
+        )
+        str_rows.append(display_row)
+        widths = [max(width, len(value)) for width, value in zip(widths, display_row)]
+
+    def format_row(values: tuple[str, ...]) -> str:
+        return "| " + " | ".join(value.ljust(width) for value, width in zip(values, widths)) + " |"
+
+    separator = "|-" + "-|-".join("-" * width for width in widths) + "-|"
+    lines = [format_row(headers), separator]
+    lines.extend(format_row(row) for row in str_rows)
+    return "\n".join(lines)
+
+
 def run(raw_prompt: str) -> None:
     """Run optimization and print result."""
     variants = generate_variants(raw_prompt)
@@ -151,6 +223,9 @@ def run(raw_prompt: str) -> None:
     print(variants["B"])
     print("--- Variant C ---")
     print(variants["C"])
+    print("--- Comparison ---")
+    comparison_rows = build_comparison_rows(raw_prompt, variants)
+    print(_render_table(comparison_rows))
 
 
 def main() -> None:
