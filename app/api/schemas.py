@@ -27,3 +27,8 @@ class AnalyzeResponse(BaseModel):
     prompt: str
     score: int
     issues: List[str]
+
+
+class BasicOptimizeResponse(BaseModel):
+    original: str
+    optimized: str
