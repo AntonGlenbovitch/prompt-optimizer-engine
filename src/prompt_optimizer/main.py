@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import re
-from collections import Counter
 
+FILLER_PATTERNS = [
+    r"\bplease\b",
+    r"\bi think\b",
+    r"\bmaybe\b",
+]
 
-CLARITY_VERBS = {"explain", "summarize", "describe", "clarify", "outline"}
+ROLE_PATTERN = re.compile(r"\b(?:act as|as)\s+(an?\s+[^,.!\n]+)", re.IGNORECASE)
 
 
 def _load_parse_args():
@@ -28,85 +32,73 @@ def _load_parse_args():
     return parse_args
 
 
-def estimate_tokens(text: str) -> int:
-    """Estimate token count using a simple words-based approximation."""
-    word_count = len(text.split())
-    return round(word_count * 1.3)
+def remove_filler_words(text: str) -> str:
+    """Remove known filler words and phrases from the prompt."""
+    cleaned = text
+    for pattern in FILLER_PATTERNS:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+    return cleaned.strip()
 
 
-def _classify_length(word_count: int) -> str:
-    """Classify prompt length by word count."""
-    if word_count < 10:
-        return "short"
-    if word_count <= 40:
-        return "medium"
-    return "long"
+def remove_duplicate_phrases(text: str) -> str:
+    """Remove duplicate clauses while preserving original order."""
+    parts = [part.strip() for part in re.split(r"[\n.;]+", text) if part.strip()]
+
+    seen: set[str] = set()
+    unique_parts: list[str] = []
+    for part in parts:
+        normalized = re.sub(r"\s+", " ", part).lower()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        unique_parts.append(part)
+
+    return ". ".join(unique_parts).strip()
 
 
-def _detect_redundancy(words: list[str]) -> list[str]:
-    """Find repeated single words and adjacent two-word phrases."""
-    issues: list[str] = []
+def _extract_role(text: str) -> tuple[str, str]:
+    """Extract a role phrase when the prompt includes one."""
+    match = ROLE_PATTERN.search(text)
+    if not match:
+        return "Not specified", text
 
-    word_counts = Counter(words)
-    repeated_words = sorted(word for word, count in word_counts.items() if count > 2)
-    if repeated_words:
-        shown = ", ".join(repeated_words[:4])
-        issues.append(f"Repetitive wording (words repeated often: {shown})")
-
-    bigrams = [f"{words[i]} {words[i + 1]}" for i in range(len(words) - 1)]
-    bigram_counts = Counter(bigrams)
-    repeated_bigrams = sorted(phrase for phrase, count in bigram_counts.items() if count > 1)
-    if repeated_bigrams:
-        shown = ", ".join(repeated_bigrams[:3])
-        issues.append(f"Repeated phrases detected: {shown}")
-
-    return issues
+    role = match.group(1).strip()
+    updated_text = (text[: match.start()] + text[match.end() :]).strip(" ,.-")
+    return role, updated_text
 
 
-def analyze_prompt(raw_prompt: str) -> tuple[int, str, list[str]]:
-    """Analyze prompt quality and return score, length label, and issues."""
-    words = re.findall(r"[a-zA-Z']+", raw_prompt.lower())
-    word_count = len(words)
-    length_label = _classify_length(word_count)
+def _to_clauses(text: str) -> list[str]:
+    """Break text into simple clauses for task/constraints extraction."""
+    clauses = [clause.strip(" ,-") for clause in re.split(r"[\n.!?]+", text) if clause.strip()]
+    return clauses
 
-    issues: list[str] = []
-    score = 100
 
-    if length_label == "short":
-        issues.append("Too short; may lack context")
-        score -= 20
-    elif length_label == "long":
-        issues.append("Too verbose")
-        score -= 15
+def structure_prompt(text: str) -> str:
+    """Convert plain prompt text into a simple Role/Task/Constraints format."""
+    role, without_role = _extract_role(text)
+    clauses = _to_clauses(without_role)
 
-    redundancy_issues = _detect_redundancy(words)
-    if redundancy_issues:
-        issues.extend(redundancy_issues)
-        score -= min(25, 10 * len(redundancy_issues))
+    task = clauses[0] if clauses else "Not specified"
+    constraints = "; ".join(clauses[1:]) if len(clauses) > 1 else "None"
 
-    if not any(verb in words for verb in CLARITY_VERBS):
-        issues.append("Lacks clear instruction")
-        score -= 20
+    return f"Role: {role}\nTask: {task}\nConstraints: {constraints}"
 
-    if not issues:
-        issues.append("No major issues detected")
 
-    score = max(0, min(100, score))
-    return score, length_label, issues
+def optimize_prompt(raw_prompt: str) -> str:
+    """Apply rule-based prompt optimization steps."""
+    no_filler = remove_filler_words(raw_prompt)
+    deduplicated = remove_duplicate_phrases(no_filler)
+    return structure_prompt(deduplicated)
 
 
 def run(raw_prompt: str) -> None:
-    """Run the core app logic and print prompt analysis results."""
-    token_count = estimate_tokens(raw_prompt)
-    score, length_label, issues = analyze_prompt(raw_prompt)
-
-    print(f"Prompt: {raw_prompt}")
-    print(f"Tokens (estimated): {token_count}")
-    print(f"Length: {length_label}")
-    print(f"Quality Score: {score}")
-    print("Issues:")
-    for issue in issues:
-        print(f"- {issue}")
+    """Run optimization and print result."""
+    optimized = optimize_prompt(raw_prompt)
+    print("Optimized Prompt:")
+    print(optimized)
 
 
 def main() -> None:

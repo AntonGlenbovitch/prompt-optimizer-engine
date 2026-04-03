@@ -9,12 +9,12 @@ def build_parser() -> argparse.ArgumentParser:
     """Create and return the command-line argument parser."""
     parser = argparse.ArgumentParser(
         prog="prompt_optimizer",
-        description="A simple CLI that reads and echoes a prompt.",
+        description="Rule-based prompt optimization CLI.",
     )
     parser.add_argument(
         "prompt",
         type=str,
-        help="Prompt text to display back to the user.",
+        help="Prompt text to optimize.",
     )
     return parser
 
