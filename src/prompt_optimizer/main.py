@@ -316,14 +316,39 @@ def _prompt_for_variant_selection() -> str:
         print("Invalid selection. Please enter 1, 2, or 3.")
 
 
+def _prompt_for_post_selection_action() -> str:
+    """Prompt for restart/quit action after a variant is selected."""
+    print("\nNext action:")
+    print("R -> Restart")
+    print("Q -> Quit")
+
+    while True:
+        choice = input("Enter choice (R/Q): ").strip().upper()
+        if choice in {"R", "Q"}:
+            return choice
+        print("Invalid selection. Please enter R or Q.")
+
+
+def _clear_previous_state() -> None:
+    """Clear terminal output so a restarted flow starts from a clean state."""
+    print("\033[2J\033[H", end="")
+
+
 def run(raw_prompt: str) -> None:
     """Run optimization and print result."""
-    variants = generate_variants(raw_prompt)
-    print(_render_comparison_view(raw_prompt, variants))
-    selected_variant = _prompt_for_variant_selection()
-    print("\nFinal Prompt:")
-    print(f"(Variant {selected_variant})")
-    print(variants[selected_variant])
+    while True:
+        variants = generate_variants(raw_prompt)
+        print(_render_comparison_view(raw_prompt, variants))
+        selected_variant = _prompt_for_variant_selection()
+        print("\nFinal Prompt:")
+        print(f"(Variant {selected_variant})")
+        print(variants[selected_variant])
+
+        next_action = _prompt_for_post_selection_action()
+        if next_action == "Q":
+            return
+
+        _clear_previous_state()
 
 
 def main() -> None:
