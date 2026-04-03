@@ -241,20 +241,62 @@ def _render_table(rows: list[dict[str, str | int]]) -> str:
     return "\n".join(lines)
 
 
+def _format_delta(value: int, positive_label: str, negative_label: str) -> str:
+    """Return a sign-aware delta string with lightweight highlighting markers."""
+    if value > 0:
+        return f"+{value} ({positive_label})"
+    if value < 0:
+        return f"{value} ({negative_label})"
+    return f"{value} (no change)"
+
+
+def _render_comparison_view(raw_prompt: str, variants: dict[str, str]) -> str:
+    """Render a side-by-side style text comparison for original and optimized variants."""
+    rows = build_comparison_rows(raw_prompt, variants)
+    original_row = rows[0]
+    variant_rows = rows[1:]
+
+    sections = [
+        "=== Comparison View ===",
+        "",
+        "Original prompt:",
+        raw_prompt,
+        "",
+        "Optimized variants:",
+    ]
+
+    for row in variant_rows:
+        label = str(row["label"])
+        variant_key = label.split()[-1]
+        variant_text = variants[variant_key]
+        length_diff = int(row["length_diff"])
+        token_savings = int(row["token_savings"])
+        highlighted_length = _format_delta(length_diff, "longer", "shorter")
+        highlighted_tokens = _format_delta(token_savings, "saved", "more tokens used")
+
+        sections.extend(
+            [
+                f"- {label}:",
+                variant_text,
+                f"  • Length difference vs original: {highlighted_length}",
+                f"  • Token savings vs original: {highlighted_tokens}",
+                "",
+            ]
+        )
+
+    sections.extend(
+        [
+            "Summary table:",
+            _render_table([original_row, *variant_rows]),
+        ]
+    )
+    return "\n".join(sections)
+
+
 def run(raw_prompt: str) -> None:
     """Run optimization and print result."""
     variants = generate_variants(raw_prompt)
-    print("--- Original Prompt ---")
-    print(raw_prompt)
-    print("--- Variant A ---")
-    print(variants["A"])
-    print("--- Variant B ---")
-    print(variants["B"])
-    print("--- Variant C ---")
-    print(variants["C"])
-    print("--- Comparison ---")
-    comparison_rows = build_comparison_rows(raw_prompt, variants)
-    print(_render_table(comparison_rows))
+    print(_render_comparison_view(raw_prompt, variants))
 
 
 def main() -> None:
