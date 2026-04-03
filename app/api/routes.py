@@ -1,7 +1,15 @@
 from fastapi import APIRouter
 
-from app.api.schemas import AnalyzeResponse, HealthResponse, PromptRequest, PromptResponse, PromptVariant
+from app.api.schemas import (
+    AnalyzeResponse,
+    BasicOptimizeResponse,
+    HealthResponse,
+    PromptRequest,
+    PromptResponse,
+    PromptVariant,
+)
 from app.services.analyzer import analyze_prompt
+from app.services.optimizer import optimize_prompt
 
 router = APIRouter()
 
@@ -42,3 +50,9 @@ def optimize(request: PromptRequest) -> PromptResponse:
 def analyze(request: PromptRequest) -> AnalyzeResponse:
     result = analyze_prompt(request.prompt)
     return AnalyzeResponse(prompt=request.prompt, score=result["score"], issues=result["issues"])
+
+
+@router.post("/optimize-basic", response_model=BasicOptimizeResponse)
+def optimize_basic(request: PromptRequest) -> BasicOptimizeResponse:
+    optimized = optimize_prompt(request.prompt)
+    return BasicOptimizeResponse(original=request.prompt, optimized=optimized)
