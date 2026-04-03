@@ -11,6 +11,7 @@ from app.api.schemas import (
 )
 from app.services.analyzer import analyze_prompt
 from app.services.optimizer import optimize_prompt
+from app.services.tokenizer import estimate_tokens
 from app.services.variants import generate_variants
 
 router = APIRouter()
@@ -23,28 +24,20 @@ def health() -> HealthResponse:
 
 @router.post("/optimize", response_model=PromptResponse)
 def optimize(request: PromptRequest) -> PromptResponse:
+    generated_variants = generate_variants(request.prompt)
+    variants = [
+        PromptVariant(
+            type=variant["type"],
+            prompt=variant["prompt"],
+            tokens=estimate_tokens(variant["prompt"]),
+            score=analyze_prompt(variant["prompt"])["score"],
+        )
+        for variant in generated_variants
+    ]
+
     return PromptResponse(
         original_prompt=request.prompt,
-        variants=[
-            PromptVariant(
-                type="minimal",
-                prompt="Summarize this in one sentence.",
-                tokens=12,
-                score=70,
-            ),
-            PromptVariant(
-                type="balanced",
-                prompt="Summarize this clearly in 2-3 sentences with key details.",
-                tokens=24,
-                score=84,
-            ),
-            PromptVariant(
-                type="detailed",
-                prompt="Summarize this thoroughly with context, key points, and next steps.",
-                tokens=42,
-                score=92,
-            ),
-        ],
+        variants=variants,
     )
 
 
