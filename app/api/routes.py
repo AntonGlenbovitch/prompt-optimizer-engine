@@ -7,9 +7,11 @@ from app.api.schemas import (
     PromptRequest,
     PromptResponse,
     PromptVariant,
+    VariantsResponse,
 )
 from app.services.analyzer import analyze_prompt
 from app.services.optimizer import optimize_prompt
+from app.services.variants import generate_variants
 
 router = APIRouter()
 
@@ -56,3 +58,8 @@ def analyze(request: PromptRequest) -> AnalyzeResponse:
 def optimize_basic(request: PromptRequest) -> BasicOptimizeResponse:
     optimized = optimize_prompt(request.prompt)
     return BasicOptimizeResponse(original=request.prompt, optimized=optimized)
+
+
+@router.post("/variants", response_model=VariantsResponse)
+def variants(request: PromptRequest) -> VariantsResponse:
+    return VariantsResponse(original=request.prompt, variants=generate_variants(request.prompt))

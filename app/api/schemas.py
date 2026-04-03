@@ -32,3 +32,8 @@ class AnalyzeResponse(BaseModel):
 class BasicOptimizeResponse(BaseModel):
     original: str
     optimized: str
+
+
+class VariantsResponse(BaseModel):
+    original: str
+    variants: List[dict]
