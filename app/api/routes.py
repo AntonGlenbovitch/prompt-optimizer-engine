@@ -34,10 +34,17 @@ def optimize(request: PromptRequest) -> PromptResponse:
         )
         for variant in generated_variants
     ]
+    variant_tokens = {variant.type: variant.tokens for variant in variants}
+    minimal_tokens = variant_tokens["minimal"]
+    comparison = {
+        "minimal_vs_balanced": minimal_tokens - variant_tokens["balanced"],
+        "minimal_vs_detailed": minimal_tokens - variant_tokens["detailed"],
+    }
 
     return PromptResponse(
         original_prompt=request.prompt,
         variants=variants,
+        comparison=comparison,
     )
 
 
