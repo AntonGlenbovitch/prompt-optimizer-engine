@@ -15,13 +15,6 @@ from app.services.tokenizer import estimate_tokens
 from app.services.variants import generate_variants
 
 router = APIRouter()
-_MODE_TO_VARIANT = {
-    "cost": "minimal",
-    "balanced": "balanced",
-    "quality": "detailed",
-}
-
-
 @router.get("/health")
 def health() -> HealthResponse:
     return HealthResponse(status="ok")
@@ -54,7 +47,13 @@ def optimize(request: PromptRequest) -> PromptResponse:
         "minimal_vs_detailed": minimal_tokens - variant_tokens["detailed"],
     }
 
-    recommended_variant = _MODE_TO_VARIANT.get((request.mode or "balanced").lower(), "balanced")
+    mode = (request.mode or "balanced").lower()
+    if mode == "cost":
+        recommended_variant = "minimal"
+    elif mode == "quality":
+        recommended_variant = "detailed"
+    else:
+        recommended_variant = "balanced"
 
     return PromptResponse(
         original_prompt=request.prompt,
