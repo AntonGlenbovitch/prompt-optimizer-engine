@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 
 _FILLER_PHRASES = ["please", "maybe", "can you", "i think", "could you"]
 _TASK_KEYWORDS = {
@@ -76,6 +78,19 @@ def _extract_subject(text: str) -> str:
     return " ".join(subject_words)
 
 
+def _normalize_task_phrase(text: str) -> str:
+    """Keep task text concise and statement-like."""
+    normalized = re.sub(
+        r"\bwhat\s+(.+?)\s+(?:are|is|were|was)\b",
+        r"\1",
+        text,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(r"\?+", "", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized.rstrip(".").strip()
+
+
 def optimize_prompt(text: str) -> str:
     """Normalize and restructure user text into an optimized prompt template."""
     normalized = text.strip()
@@ -84,7 +99,7 @@ def optimize_prompt(text: str) -> str:
 
     task = _detect_task(deduplicated)
     subject = _extract_subject(deduplicated)
-    task_line = f"{task} {subject}".strip()
+    task_line = _normalize_task_phrase(f"{task} {subject}".strip())
 
     return (
         "Role:\n"

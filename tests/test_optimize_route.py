@@ -46,3 +46,24 @@ def test_variants_returns_original_and_generated_variants() -> None:
         "balanced",
         "detailed",
     ]
+
+
+def test_optimize_basic_removes_question_style_task_text() -> None:
+    prompt = "Can you explain what RAG systems are and how they work?"
+    response = client.post("/optimize-basic", json={"prompt": prompt})
+
+    assert response.status_code == 200
+    optimized = response.json()["optimized"]
+
+    assert "Explain RAG systems and how they work" in optimized
+    assert "?" not in optimized
+
+
+def test_detailed_variant_scores_higher_than_balanced() -> None:
+    prompt = "Explain what RAG systems are and how they work"
+    response = client.post("/optimize", json={"prompt": prompt})
+
+    assert response.status_code == 200
+    variants = {variant["type"]: variant for variant in response.json()["variants"]}
+
+    assert variants["detailed"]["score"] > variants["balanced"]["score"]
