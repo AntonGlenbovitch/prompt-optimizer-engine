@@ -26,13 +26,21 @@ def health() -> HealthResponse:
 def optimize(request: PromptRequest) -> PromptResponse:
     generated_variants = generate_variants(request.prompt)
     variants = [
+        (
+            variant,
+            analyze_prompt(variant["prompt"]),
+        )
+        for variant in generated_variants
+    ]
+    variants = [
         PromptVariant(
             type=variant["type"],
             prompt=variant["prompt"],
             tokens=estimate_tokens(variant["prompt"]),
-            score=analyze_prompt(variant["prompt"])["score"],
+            score=analysis["score"],
+            issues=analysis["issues"],
         )
-        for variant in generated_variants
+        for variant, analysis in variants
     ]
     variant_tokens = {variant.type: variant.tokens for variant in variants}
     minimal_tokens = variant_tokens["minimal"]

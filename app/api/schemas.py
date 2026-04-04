@@ -16,6 +16,7 @@ class PromptVariant(BaseModel):
     prompt: str
     tokens: int
     score: int
+    issues: List[str]
 
 
 class PromptResponse(BaseModel):
