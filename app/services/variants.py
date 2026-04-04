@@ -31,11 +31,35 @@ def _remove_duplicate_words_preserve_case(text: str) -> str:
     return " ".join(unique_words)
 
 
+def _remove_what_are_pattern(text: str) -> str:
+    """Collapse 'what ... are/is' phrasing into a direct subject phrase."""
+    return re.sub(
+        r"\bwhat\s+(.+?)\s+(?:are|is|were|was)\b",
+        r"\1",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+
+def _strip_trailing_punctuation(text: str) -> str:
+    """Remove trailing '?' and '.' punctuation marks."""
+    return re.sub(r"[?.]+\s*$", "", text).strip()
+
+
+def _capitalize_first_letter(text: str) -> str:
+    """Capitalize only the first character, preserving the rest."""
+    if not text:
+        return text
+    return text[0].upper() + text[1:]
+
+
 def _minimal_variant(text: str) -> str:
     stripped = text.strip()
     without_fillers = _remove_fillers_preserve_case(stripped)
-    deduplicated = _remove_duplicate_words_preserve_case(without_fillers)
-    return deduplicated
+    normalized_question_pattern = _remove_what_are_pattern(without_fillers)
+    deduplicated = _remove_duplicate_words_preserve_case(normalized_question_pattern)
+    without_trailing_punctuation = _strip_trailing_punctuation(deduplicated)
+    return _capitalize_first_letter(without_trailing_punctuation)
 
 
 def _extract_task_line(balanced: str) -> str:
