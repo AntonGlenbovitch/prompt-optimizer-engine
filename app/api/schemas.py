@@ -21,6 +21,7 @@ class PromptVariant(BaseModel):
 class PromptResponse(BaseModel):
     original_prompt: str
     variants: List[PromptVariant]
+    comparison: dict[str, int]
 
 
 class AnalyzeResponse(BaseModel):
