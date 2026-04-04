@@ -9,6 +9,7 @@ class HealthResponse(BaseModel):
 
 class PromptRequest(BaseModel):
     prompt: str
+    mode: str | None = None
 
 
 class PromptVariant(BaseModel):
@@ -23,6 +24,7 @@ class PromptResponse(BaseModel):
     original_prompt: str
     variants: List[PromptVariant]
     comparison: dict[str, int]
+    recommended_variant: str
 
 
 class AnalyzeResponse(BaseModel):
