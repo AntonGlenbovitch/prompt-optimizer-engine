@@ -19,6 +19,7 @@ def test_optimize_returns_mock_response() -> None:
         "balanced",
         "detailed",
     ]
+    assert all(isinstance(variant["issues"], list) for variant in payload["variants"])
     assert payload["comparison"] == {
         "minimal_vs_balanced": payload["variants"][0]["tokens"] - payload["variants"][1]["tokens"],
         "minimal_vs_detailed": payload["variants"][0]["tokens"] - payload["variants"][2]["tokens"],
