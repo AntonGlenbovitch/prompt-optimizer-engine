@@ -45,11 +45,22 @@ def _extract_task_line(balanced: str) -> str:
     return task_block.split("\n\nConstraints:\n", maxsplit=1)[0].strip()
 
 
+def _append_sentence(base_text: str, sentence: str) -> str:
+    """Append a sentence while preventing double punctuation."""
+    normalized_base = base_text.strip()
+    if not normalized_base:
+        return sentence.strip()
+    if normalized_base[-1] not in ".!?":
+        normalized_base = f"{normalized_base}."
+    return f"{normalized_base} {sentence.strip()}"
+
+
 def _detailed_variant(balanced: str) -> str:
     task_line = _extract_task_line(balanced)
-    expanded_task = (
-        f"{task_line}. Provide a step-by-step explanation, include concrete examples, "
-        "and break down the key components."
+    expanded_task = _append_sentence(
+        task_line,
+        "Provide a step-by-step explanation, include concrete examples, and break down "
+        "the key components.",
     )
 
     return (
