@@ -79,6 +79,11 @@ def _append_sentence(base_text: str, sentence: str) -> str:
     return f"{normalized_base} {sentence.strip()}"
 
 
+def _task_mentions(task_text: str, pattern: str) -> bool:
+    """Return whether the task already includes an instruction pattern."""
+    return re.search(pattern, task_text, flags=re.IGNORECASE) is not None
+
+
 def _detailed_variant(balanced: str) -> str:
     task_line = _extract_task_line(balanced)
     expanded_task = _append_sentence(
@@ -86,6 +91,17 @@ def _detailed_variant(balanced: str) -> str:
         "Provide a step-by-step explanation, include concrete examples, and break down "
         "the key components.",
     )
+    constraints = [
+        "- Use a clear structure",
+        "- Keep the response concise where possible",
+    ]
+
+    if not _task_mentions(expanded_task, r"\bstep(?:\s*-\s*|\s+)by(?:\s*-\s*|\s+)step\b"):
+        constraints.append("- Explain step-by-step")
+    if not _task_mentions(expanded_task, r"\bexample(?:s)?\b"):
+        constraints.append("- Include examples")
+    if not _task_mentions(expanded_task, r"\bbreak\s+down\b|\bbreakdown\b"):
+        constraints.append("- Break down key components")
 
     return (
         "Role:\n"
@@ -93,10 +109,7 @@ def _detailed_variant(balanced: str) -> str:
         "Task:\n"
         f"{expanded_task}\n\n"
         "Constraints:\n"
-        "- Include examples\n"
-        "- Explain step-by-step\n"
-        "- Break down key components\n"
-        "- Use clear structure"
+        f"{'\n'.join(constraints)}"
     )
 
 
