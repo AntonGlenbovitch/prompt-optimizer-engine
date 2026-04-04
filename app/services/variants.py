@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import re
 
-from app.services.optimizer import optimize_prompt
 from app.services.optimizer import _FILLER_PHRASES
+from app.services.optimizer import _normalize_task_phrase
+from app.services.optimizer import optimize_prompt
 
 
 def _remove_fillers_preserve_case(text: str) -> str:
@@ -59,7 +60,8 @@ def _minimal_variant(text: str) -> str:
     normalized_question_pattern = _remove_what_are_pattern(without_fillers)
     deduplicated = _remove_duplicate_words_preserve_case(normalized_question_pattern)
     without_trailing_punctuation = _strip_trailing_punctuation(deduplicated)
-    return _capitalize_first_letter(without_trailing_punctuation)
+    normalized_statement = _normalize_task_phrase(without_trailing_punctuation)
+    return _capitalize_first_letter(normalized_statement)
 
 
 def _extract_task_line(balanced: str) -> str:
@@ -69,14 +71,25 @@ def _extract_task_line(balanced: str) -> str:
     return task_block.split("\n\nConstraints:\n", maxsplit=1)[0].strip()
 
 
+def _to_sentence(text: str) -> str:
+    """Normalize a sentence and ensure it ends with a period."""
+    sentence = _normalize_task_phrase(text)
+    if not sentence:
+        return sentence
+    if sentence[-1] not in ".!":
+        sentence = f"{sentence}."
+    return sentence
+
+
 def _append_sentence(base_text: str, sentence: str) -> str:
-    """Append a sentence while preventing double punctuation."""
-    normalized_base = base_text.strip()
-    if not normalized_base:
-        return sentence.strip()
-    if normalized_base[-1] not in ".!?":
-        normalized_base = f"{normalized_base}."
-    return f"{normalized_base} {sentence.strip()}"
+    """Append sentence-level text while preserving clean punctuation."""
+    base_sentence = _to_sentence(base_text)
+    extra_sentence = _to_sentence(sentence)
+    if not base_sentence:
+        return extra_sentence
+    if not extra_sentence:
+        return base_sentence
+    return f"{base_sentence} {extra_sentence}"
 
 
 def _task_mentions(task_text: str, pattern: str) -> bool:
@@ -85,12 +98,15 @@ def _task_mentions(task_text: str, pattern: str) -> bool:
 
 
 def _detailed_variant(balanced: str) -> str:
-    task_line = _extract_task_line(balanced)
-    expanded_task = _append_sentence(
-        task_line,
-        "Provide a step-by-step explanation, include concrete examples, and break down "
-        "the key components.",
-    )
+    task_line = _normalize_task_phrase(_extract_task_line(balanced))
+    task_sentences = [
+        _to_sentence(task_line),
+        _to_sentence(
+            "Provide a step-by-step explanation with concrete examples and a breakdown "
+            "of key components"
+        ),
+    ]
+    expanded_task = "\n".join(sentence for sentence in task_sentences if sentence)
     constraints = [
         "- Use a clear structure",
         "- Keep the response concise where possible",

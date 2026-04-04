@@ -32,14 +32,14 @@ def analyze_prompt(text: str) -> dict:
         score -= 25
 
     if "role:" in analysis_text and "task:" in analysis_text:
-        score += 20
+        score += 25
 
     if "constraints:" in analysis_text:
-        score += 15
+        score += 20
 
     sentence_count = sum(analysis_text.count(char) for char in ".!?")
     if sentence_count >= 2:
-        score += 10
+        score += 15
 
     score = max(0, min(100, score))
     return {"score": score, "issues": issues}
