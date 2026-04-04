@@ -24,6 +24,21 @@ def test_optimize_returns_mock_response() -> None:
         "minimal_vs_balanced": payload["variants"][0]["tokens"] - payload["variants"][1]["tokens"],
         "minimal_vs_detailed": payload["variants"][0]["tokens"] - payload["variants"][2]["tokens"],
     }
+    assert payload["recommended_variant"] == "balanced"
+
+
+def test_optimize_mode_cost_recommends_minimal() -> None:
+    response = client.post("/optimize", json={"prompt": "Make this better", "mode": "cost"})
+
+    assert response.status_code == 200
+    assert response.json()["recommended_variant"] == "minimal"
+
+
+def test_optimize_mode_quality_recommends_detailed() -> None:
+    response = client.post("/optimize", json={"prompt": "Make this better", "mode": "quality"})
+
+    assert response.status_code == 200
+    assert response.json()["recommended_variant"] == "detailed"
 
 
 def test_optimize_basic_returns_original_and_optimized() -> None:
